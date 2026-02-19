@@ -1,9 +1,14 @@
 // app/api/generate-report/route.ts
+// Genera reportes de viabilidad usando IA con timeout para Vercel
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generarReporte } from '@/lib/ai/report-generator';
 
+// CRÍTICO: Timeout máximo para Vercel (30 segundos)
+export const maxDuration = 30;
+
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
   try {
     const { testId } = await req.json();
     console.log('🔄 Generando reporte para:', testId);
