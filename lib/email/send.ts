@@ -4,7 +4,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendReportEmail({ to, nombre, reportUrl }: { to: string, nombre: string, reportUrl: string }) {
   return await resend.emails.send({
-    from: 'ValixAI <reportes@valixai.com>', // Cambiar por dominio verificado en producción
+    from: 'onboarding@resend.dev', // Cambiar por dominio verificado en producción
     to: [to],
     subject: `Tu Reporte de Viabilidad de Negocio - ${nombre}`,
     html: `
