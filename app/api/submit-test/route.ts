@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
         profesion: validatedData.profesion,
         tiene_negocio: validatedData.tieneNegocio,
         descripcion_idea: validatedData.descripcionIdea,
-        tiene_contacts: validatedData.tieneContactos, // Nota: Ajustado a schema DB si es necesario
         tiene_contactos: validatedData.tieneContactos,
         conoce_competencia: validatedData.conoceCompetencia,
         capital_disponible: validatedData.capitalDisponible,

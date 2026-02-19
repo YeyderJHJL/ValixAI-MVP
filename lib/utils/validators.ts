@@ -8,7 +8,7 @@ export const testSchema = z.object({
   profesion: z.string().min(3, "Por favor indique su profesión"),
   
   // Step 2: Idea
-  tieneNegocio: z.boolean(),
+  tieneNegocio: z.coerce.boolean(),
   descripcionIdea: z.string().min(10, "Por favor describa un poco más su idea").max(500),
   tieneContactos: z.enum(['muchos', 'algunos', 'pocos', 'ninguno']),
   conoceCompetencia: z.enum(['si-profundo', 'si-basico', 'no']),

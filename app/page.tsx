@@ -31,10 +31,15 @@ export default function Home() {
               
               <div className="flex flex-col sm:flex-row items-center gap-6 pt-8">
                 <Link href="/test" className="w-full sm:w-auto">
-                  <Button size="lg" className="w-full sm:px-16 text-2xl shadow-2xl shadow-brand-500/20 group">
-                    Comenzar Validación
-                    <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
-                  </Button>
+                  <span className="inline-block w-full">
+                    <Button
+                      size="lg"
+                      className="w-full sm:px-16 text-2xl shadow-2xl shadow-brand-500/20 group"
+                    >
+                      Comenzar Validación
+                      <ArrowRight className="ml-3 group-hover:translate-x-2 transition-transform" />
+                    </Button>
+                  </span>
                 </Link>
                 <p className="text-lg text-slate-400 font-medium italic">
                   "La mejor herramienta para mi segunda etapa profesional"
