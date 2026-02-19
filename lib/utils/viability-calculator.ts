@@ -1,57 +1,67 @@
-import { TestFormData } from "./validators";
+// lib/utils/viability-calculator.ts
 
-export interface ViabilityResult {
-  score: number;
-  nivel: 'BAJA' | 'MEDIA' | 'ALTA';
-  factores: { factor: string; tipo: 'positivo' | 'negativo' }[];
-}
-
-export function calcularViabilidadBase(data: any): ViabilityResult {
-  let score = 50; // Base
-  const factores: { factor: string; tipo: 'positivo' | 'negativo' }[] = [];
-
+export function calcularViabilidadBase(testData: any) {
+  let score = 50;
+  const factores: Array<{tipo: string, factor: string, impacto: string}> = [];
+  
   // Contactos
-  if (data.tiene_contactos === 'muchos') {
+  if (testData.tiene_contactos === 'muchos') {
+    score += 25;
+    factores.push({ tipo: 'positivo', factor: 'Red de contactos sólida (20+)', impacto: '+25' });
+  } else if (testData.tiene_contactos === 'algunos') {
     score += 15;
-    factores.push({ factor: 'Sólida red de contactos en el sector', tipo: 'positivo' });
-  } else if (data.tiene_contactos === 'ninguno') {
-    score -= 10;
-    factores.push({ factor: 'Falta de red de contactos inicial', tipo: 'negativo' });
+    factores.push({ tipo: 'positivo', factor: 'Tienes algunos contactos (5-20)', impacto: '+15' });
+  } else if (testData.tiene_contactos === 'ninguno') {
+    score -= 20;
+    factores.push({ tipo: 'negativo', factor: 'Sin red de contactos establecida', impacto: '-20' });
   }
-
+  
   // Competencia
-  if (data.conoce_competencia === 'si-profundo') {
-    score += 10;
-    factores.push({ factor: 'Conocimiento profundo del mercado', tipo: 'positivo' });
-  } else if (data.conoce_competencia === 'no') {
-    score -= 5;
-    factores.push({ factor: 'Necesidad de investigar a la competencia', tipo: 'negativo' });
-  }
-
-  // Capital
-  if (data.capital_disponible === 'mas-20000') {
-    score += 10;
-    factores.push({ factor: 'Respaldo financiero suficiente para escalar', tipo: 'positivo' });
-  } else if (data.capital_disponible === 'menos-1000') {
-    score -= 5;
-    factores.push({ factor: 'Presupuesto inicial muy ajustado', tipo: 'negativo' });
-  }
-
-  // Tiempo
-  if (data.tiempo_disponible >= 20) {
-    score += 10;
-    factores.push({ factor: 'Alta disponibilidad de tiempo', tipo: 'positivo' });
-  } else if (data.tiempo_disponible < 5) {
+  if (testData.conoce_competencia === 'si-profundo') {
+    score += 15;
+    factores.push({ tipo: 'positivo', factor: 'Conoce su competencia a fondo', impacto: '+15' });
+  } else if (testData.conoce_competencia === 'no') {
     score -= 10;
-    factores.push({ factor: 'Tiempo limitado para la ejecución', tipo: 'negativo' });
+    factores.push({ tipo: 'negativo', factor: 'No ha investigado la competencia', impacto: '-10' });
   }
-
-  // Normalizar score
+  
+  // Capital
+  if (testData.capital_disponible === '5000-10000' || testData.capital_disponible === '10000-mas') {
+    score += 10;
+    factores.push({ tipo: 'positivo', factor: 'Capital disponible adecuado', impacto: '+10' });
+  } else if (testData.capital_disponible === '0') {
+    score -= 10;
+    factores.push({ tipo: 'negativo', factor: 'Sin capital inicial disponible', impacto: '-10' });
+  }
+  
+  // Tiempo
+  if (testData.tiempo_disponible >= 30) {
+    score += 5;
+    factores.push({ tipo: 'positivo', factor: 'Disponibilidad de tiempo suficiente', impacto: '+5' });
+  }
+  
+  // Experiencia
+  if (testData.tiene_negocio === true) {
+    score += 10;
+    factores.push({ tipo: 'positivo', factor: 'Ya tiene experiencia con negocio propio', impacto: '+10' });
+  }
+  
   score = Math.max(0, Math.min(100, score));
-
-  let nivel: 'BAJA' | 'MEDIA' | 'ALTA' = 'MEDIA';
-  if (score >= 75) nivel = 'ALTA';
-  if (score < 40) nivel = 'BAJA';
-
-  return { score, nivel, factores };
+  
+  let nivel: string, nivelColor: string, nivelTexto: string;
+  if (score >= 75) {
+    nivel = 'ALTA';
+    nivelColor = 'green';
+    nivelTexto = 'Su idea tiene alta probabilidad de éxito';
+  } else if (score >= 50) {
+    nivel = 'MEDIA';
+    nivelColor = 'yellow';
+    nivelTexto = 'Su idea es viable con algunos ajustes';
+  } else {
+    nivel = 'BAJA';
+    nivelColor = 'red';
+    nivelTexto = 'Su idea necesita más preparación antes de lanzar';
+  }
+  
+  return { score: Math.round(score), nivel, nivelColor, nivelTexto, factores };
 }

@@ -1,3 +1,4 @@
+// app/api/generate-report/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generarReporte } from '@/lib/ai/report-generator';
@@ -5,6 +6,8 @@ import { generarReporte } from '@/lib/ai/report-generator';
 export async function POST(req: NextRequest) {
   try {
     const { testId } = await req.json();
+    console.log('🔄 Generando reporte para:', testId);
+    
     const supabase = await createClient();
     
     // 1. Obtener datos del test
@@ -14,19 +17,29 @@ export async function POST(req: NextRequest) {
       .eq('id', testId)
       .single();
     
-    if (testError || !test) throw new Error('Test no encontrado');
+    if (testError || !test) {
+      console.error('❌ Test no encontrado:', testError);
+      throw new Error('Test no encontrado');
+    }
+
+    console.log('✅ Test encontrado:', test.nombre);
     
-    // 2. Verificar si ya existe
+    // 2. Verificar si ya existe reporte
     const { data: existing } = await supabase
       .from('reportes')
       .select('id')
       .eq('test_id', testId)
       .single();
     
-    if (existing) return NextResponse.json({ success: true, reportId: existing.id });
+    if (existing) {
+      console.log('ℹ️ Reporte ya existe:', existing.id);
+      return NextResponse.json({ success: true, reportId: existing.id });
+    }
     
-    // 3. Generar con IA
+    // 3. Generar con IA (o fallback)
+    console.log('🤖 Llamando a IA...');
     const reporteData = await generarReporte(test);
+    console.log('✅ Reporte generado');
     
     // 4. Guardar en DB
     const { data: reporte, error: reporteError } = await supabase
@@ -44,12 +57,21 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
     
-    if (reporteError) throw reporteError;
+    if (reporteError) {
+      console.error('❌ Error guardando reporte:', reporteError);
+      throw reporteError;
+    }
+
+    console.log('✅ Reporte guardado:', reporte.id);
     
     return NextResponse.json({ success: true, reportId: reporte.id });
     
   } catch (error: any) {
-    console.error('Error generating report:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('💥 Error generating report:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message 
+    }, { status: 500 });
   }
 }
+

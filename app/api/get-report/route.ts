@@ -1,86 +1,98 @@
+// app/api/get-report/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { testSchema } from '@/lib/utils/validators';
-import { trackEvent, EVENTS } from '@/lib/analytics/posthog';
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const body = await req.json();
+    const searchParams = req.nextUrl.searchParams;
+    const testId = searchParams.get('testId');
     
-    // Validación con Zod
-    const validatedData = testSchema.parse(body);
+    if (!testId) {
+      return NextResponse.json({
+        success: false,
+        error: 'testId requerido'
+      }, { status: 400 });
+    }
+
+    console.log('📊 Obteniendo reporte para:', testId);
     
-    // Cliente Supabase (Server Side)
     const supabase = await createClient();
     
-    // Guardar test
+    // Query 1: Obtener test
     const { data: test, error: testError } = await supabase
       .from('tests')
-      .insert({
-        nombre: validatedData.nombre,
-        edad: validatedData.edad,
-        email: validatedData.email,
-        profesion: validatedData.profesion,
-        tiene_negocio: validatedData.tieneNegocio,
-        descripcion_idea: validatedData.descripcionIdea,
-        tiene_contacts: validatedData.tieneContactos, // Nota: Ajustado a schema DB si es necesario
-        tiene_contactos: validatedData.tieneContactos,
-        conoce_competencia: validatedData.conoceCompetencia,
-        capital_disponible: validatedData.capitalDisponible,
-        tiempo_disponible: validatedData.tiempoDisponible,
-        mayor_miedo: validatedData.mayorMiedo,
-        mayor_dificultad: validatedData.mayorDificultad,
-        user_agent: req.headers.get('user-agent'),
-      })
-      .select()
+      .select('*')
+      .eq('id', testId)
       .single();
     
-    if (testError) {
-      console.error('Supabase Error:', testError);
-      throw testError;
+    if (testError || !test) {
+      console.error('❌ Test no encontrado:', testError);
+      return NextResponse.json({
+        success: false,
+        error: 'Test no encontrado'
+      }, { status: 404 });
     }
     
-    // Track evento (Backend)
-    await trackEvent({
-      event: EVENTS.TEST_COMPLETED,
-      userId: test.id,
-      properties: {
-        profesion: validatedData.profesion,
-        tieneNegocio: validatedData.tieneNegocio,
+    // Query 2: Obtener reporte
+    const { data: reporte, error: reporteError } = await supabase
+      .from('reportes')
+      .select('*')
+      .eq('test_id', testId)
+      .maybeSingle(); // No falla si no existe
+    
+    // Si no hay reporte aún
+    if (!reporte) {
+      console.log('⏳ Reporte en generación...');
+      return NextResponse.json({
+        success: true,
+        status: 'generating',
+        message: 'Reporte en generación...'
+      });
+    }
+
+    console.log('✅ Reporte encontrado');
+    
+    // Actualizar viewed_at si es primera vez
+    if (!reporte.viewed_at) {
+      await supabase
+        .from('reportes')
+        .update({ viewed_at: new Date().toISOString() })
+        .eq('id', reporte.id);
+    }
+    
+    // Mapear campos snake_case a camelCase para frontend
+    return NextResponse.json({
+      success: true,
+      status: 'ready',
+      data: {
+        test: {
+          nombre: test.nombre,
+          edad: test.edad,
+          profesion: test.profesion,
+          descripcionIdea: test.descripcion_idea,
+          tieneNegocio: test.tiene_negocio,
+          mayorMiedo: test.mayor_miedo,
+        },
+        reporte: {
+          viability: {
+            score: reporte.viability_score,
+            nivel: reporte.viability_nivel,
+            porQueViable: reporte.por_que_viable,
+          },
+          riesgos: reporte.riesgos,
+          roadmap: reporte.roadmap,
+          mensajeMiedo: reporte.mensaje_miedo,
+          recursos: reporte.recursos,
+        }
       }
     });
     
-    // Trigger generación de reporte (async)
-    // En un entorno real usaríamos un Queue o Background Job
-    // Aquí hacemos un fetch interno
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${req.headers.get('host')}`;
-    
-    fetch(`${baseUrl}/api/generate-report`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ testId: test.id })
-    }).catch(err => console.error('Error triggering report generation:', err));
-    
-    return NextResponse.json({
-      success: true,
-      testId: test.id,
-      redirectUrl: `/reporte/${test.id}`
-    });
-    
   } catch (error: any) {
-    console.error('Error en submit-test:', error);
-    
-    if (error.name === 'ZodError') {
-      return NextResponse.json({
-        success: false,
-        error: 'Datos inválidos',
-        details: error.errors
-      }, { status: 400 });
-    }
+    console.error('💥 Error obteniendo reporte:', error);
     
     return NextResponse.json({
       success: false,
-      error: 'Error al guardar test: ' + (error.message || 'Unknown error')
+      error: 'Error al obtener reporte: ' + error.message
     }, { status: 500 });
   }
 }
