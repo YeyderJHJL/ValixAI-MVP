@@ -29,22 +29,48 @@ export default function ReportePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    let pollCount = 0;
+    const maxPolls = 20; // Máximo 20 intentos = 60 segundos
+    
     const fetchReport = async () => {
       try {
+        pollCount++;
+        console.log(`📊 [REPORT] Polling intento ${pollCount}/${maxPolls}`);
+        
         const res = await fetch(`/api/get-report?testId=${id}`);
         const result = await res.json();
         
+        console.log('📊 [REPORT] Status:', result.status);
+        
         if (result.status === 'generating') {
-          setTimeout(fetchReport, 3000);
+          if (pollCount < maxPolls) {
+            console.log('📊 [REPORT] Aún generando, reintentando en 3s...');
+            setTimeout(fetchReport, 3000);
+          } else {
+            console.error('❌ [REPORT] Timeout: máximo de intentos alcanzado');
+            setLoading(false);
+            setErrorMessage('La generación está tardando más de lo esperado. Por favor recargue la página.');
+            setEmailStatus('error');
+          }
         } else if (result.status === 'ready') {
+          console.log('✅ [REPORT] Reporte listo!');
           setData(result.data);
           setLoading(false);
           trackEvent({ event: EVENTS.REPORT_VIEWED, userId: id as string });
+        } else if (result.status === 'error') {
+          console.error('❌ [REPORT] Error en generación:', result.error);
+          setLoading(false);
+          setErrorMessage(result.error || 'Error al generar el reporte');
+          setEmailStatus('error');
         }
       } catch (error) {
-        console.error("Error fetching report:", error);
+        console.error("💥 [REPORT] Error fetching report:", error);
+        setLoading(false);
+        setErrorMessage('Error de conexión. Por favor recargue la página.');
+        setEmailStatus('error');
       }
     };
+    
     fetchReport();
   }, [id]);
 
