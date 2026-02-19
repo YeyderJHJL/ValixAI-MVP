@@ -20,6 +20,7 @@ const STEPS = [
 export default function TestPage() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const router = useRouter();
 
   const methods = useForm<TestFormData>({
@@ -32,10 +33,20 @@ export default function TestPage() {
   });
 
   const nextStep = async () => {
+    console.log("🚀 [SUBMIT] Intentando avanzar al siguiente paso");
     const fields = getFieldsForStep(step);
     const isValid = await methods.trigger(fields as any);
-    console.log("Errores 1:", methods.formState.errors);
-    if (isValid) setStep((s) => Math.min(s + 1, STEPS.length));
+    
+    console.log("🚀 [SUBMIT] Campos a validar:", fields);
+    console.log("🚀 [SUBMIT] isValid:", isValid);
+    console.log("🚀 [SUBMIT] Errores:", methods.formState.errors);
+    
+    if (isValid) {
+      setStep((s) => Math.min(s + 1, STEPS.length));
+      console.log("✅ [SUBMIT] Avanzando a paso:", step + 1);
+    } else {
+      console.error("❌ [SUBMIT] Validación falló. Errores:", methods.formState.errors);
+    }
   };
 
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
@@ -50,25 +61,61 @@ export default function TestPage() {
   };
 
   const onSubmit = async (data: TestFormData) => {
+    console.log("🚀 [SUBMIT] Inicio de submit");
+    console.log("🚀 [SUBMIT] Data completa:", data);
+    
+    // Validación manual adicional antes de enviar
+    if (!data.nombre || data.nombre.trim().length < 2) {
+      const error = "El nombre es requerido (mínimo 2 caracteres)";
+      console.error("❌ [SUBMIT] Validación falló:", error);
+      setSubmitError(error);
+      return;
+    }
+    
+    if (!data.email || !data.email.includes("@")) {
+      const error = "Email inválido";
+      console.error("❌ [SUBMIT] Validación falló:", error);
+      setSubmitError(error);
+      return;
+    }
+    
+    if (!data.descripcionIdea || data.descripcionIdea.trim().length < 10) {
+      const error = "Debe describir su idea (mínimo 10 caracteres)";
+      console.error("❌ [SUBMIT] Validación falló:", error);
+      setSubmitError(error);
+      return;
+    }
+    
+    console.log("✅ [SUBMIT] Validación manual OK");
     setIsSubmitting(true);
+    setSubmitError(null);
+    
     try {
+      console.log("🚀 [SUBMIT] Enviando request a /api/submit-test");
       const response = await fetch("/api/submit-test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       
+      console.log("🚀 [SUBMIT] Response status:", response.status);
       const result = await response.json();
+      console.log("🚀 [SUBMIT] Response data:", result);
+      
       if (result.success) {
+        console.log("✅ [SUBMIT] Success! Redirigiendo a:", result.redirectUrl);
         router.push(result.redirectUrl);
       } else {
-        alert("Hubo un error al procesar su test. Por favor intente de nuevo.");
+        const errorMsg = result.error || "Hubo un error al procesar su test";
+        console.error("❌ [SUBMIT] Error del servidor:", errorMsg);
+        setSubmitError(errorMsg);
       }
-    } catch (error) {
-      console.error(error);
-      alert("Error de conexión. Intente de nuevo.");
+    } catch (error: any) {
+      console.error("💥 [SUBMIT] Error de conexión:", error);
+      setSubmitError(`Error de conexión: ${error.message}`);
     } finally {
       setIsSubmitting(false);
+      console.log("🚀 [SUBMIT] Fin de submit");
     }
   };
 
