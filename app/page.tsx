@@ -15,7 +15,7 @@ export default function Home() {
             <div className="flex flex-col items-center text-center space-y-8">
               <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-white border border-brand-100 shadow-sm text-brand-700 font-bold text-lg animate-fade-in">
                 <Sparkles size={20} className="text-brand-500" />
-                <span>Inteligencia Artificial para Emprendedores Senior</span>
+                <span>IA para Emprendedores Senior</span>
               </div>
               
               <h1 className="text-6xl md:text-8xl font-black text-slate-900 leading-[1.05] tracking-tight max-w-4xl">
