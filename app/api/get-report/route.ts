@@ -1,77 +1,48 @@
-// app/api/get-report/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 export async function GET(req: NextRequest) {
-  try {
-    const searchParams = req.nextUrl.searchParams;
-    const testId = searchParams.get('testId');
-    
-    if (!testId) {
-      return NextResponse.json({
-        success: false,
-        error: 'testId requerido'
-      }, { status: 400 });
-    }
+  const { searchParams } = new URL(req.url);
+  const testId = searchParams.get('testId');
 
-    console.log('📊 Obteniendo reporte para:', testId);
-    
+  if (!testId) {
+    return NextResponse.json({ error: 'testId is required' }, { status: 400 });
+  }
+
+  try {
     const supabase = await createClient();
-    
-    // Query 1: Obtener test
+
+    // 1. Buscar el test
     const { data: test, error: testError } = await supabase
       .from('tests')
       .select('*')
       .eq('id', testId)
       .single();
-    
+
     if (testError || !test) {
-      console.error('❌ Test no encontrado:', testError);
-      return NextResponse.json({
-        success: false,
-        error: 'Test no encontrado'
-      }, { status: 404 });
+      return NextResponse.json({ status: 'error', error: 'Test no encontrado' });
     }
-    
-    // Query 2: Obtener reporte
+
+    // 2. Buscar el reporte
     const { data: reporte, error: reporteError } = await supabase
       .from('reportes')
       .select('*')
       .eq('test_id', testId)
-      .maybeSingle(); // No falla si no existe
-    
-    // Si no hay reporte aún
-    if (!reporte) {
-      console.log('⏳ Reporte en generación...');
-      return NextResponse.json({
-        success: true,
-        status: 'generating',
-        message: 'Reporte en generación...'
-      });
+      .single();
+
+    if (reporteError || !reporte) {
+      // Si no hay reporte, asumimos que se está generando
+      return NextResponse.json({ status: 'generating' });
     }
 
-    console.log('✅ Reporte encontrado');
-    
-    // Actualizar viewed_at si es primera vez
-    if (!reporte.viewed_at) {
-      await supabase
-        .from('reportes')
-        .update({ viewed_at: new Date().toISOString() })
-        .eq('id', reporte.id);
-    }
-    
-    // Mapear campos snake_case a camelCase para frontend
+    // 3. Retornar datos formateados
     return NextResponse.json({
-      success: true,
       status: 'ready',
       data: {
         test: {
           nombre: test.nombre,
-          edad: test.edad,
           profesion: test.profesion,
           descripcionIdea: test.descripcion_idea,
-          tieneNegocio: test.tiene_negocio,
-          mayorMiedo: test.mayor_miedo,
         },
         reporte: {
           viability: {
@@ -83,16 +54,14 @@ export async function GET(req: NextRequest) {
           roadmap: reporte.roadmap,
           mensajeMiedo: reporte.mensaje_miedo,
           recursos: reporte.recursos,
+          assessmentMadurez: reporte.assessment_madurez,
+          incubadoraRecomendada: reporte.incubadora_recomendada,
         }
       }
     });
-    
+
   } catch (error: any) {
-    console.error('💥 Error obteniendo reporte:', error);
-    
-    return NextResponse.json({
-      success: false,
-      error: 'Error al obtener reporte: ' + error.message
-    }, { status: 500 });
+    console.error('💥 [GET-REPORT] Error:', error);
+    return NextResponse.json({ status: 'error', error: error.message });
   }
 }
