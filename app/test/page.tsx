@@ -148,6 +148,13 @@ export default function TestPage() {
             </div>
           </div>
 
+          {/* Error Display */}
+          {submitError && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700">
+              <strong>Error:</strong> {submitError}
+            </div>
+          )}
+
           <div className="bg-white p-8 md:p-12 rounded-3xl shadow-xl border border-gray-100">
             <FormProvider {...methods}>
               <form onSubmit={methods.handleSubmit(onSubmit)}>
@@ -188,6 +195,26 @@ export default function TestPage() {
               </form>
             </FormProvider>
           </div>
+          
+          {/* Debug Panel (solo en desarrollo) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="fixed bottom-4 right-4 bg-black/90 text-white p-4 rounded-xl text-xs max-w-xs shadow-2xl">
+              <div className="font-bold mb-2">🐛 Debug Panel</div>
+              <div>Step: {step}/{STEPS.length}</div>
+              <div>isValid: {methods.formState.isValid ? '✅' : '❌'}</div>
+              <div>isSubmitting: {isSubmitting ? '⏳' : '✅'}</div>
+              {Object.keys(methods.formState.errors).length > 0 && (
+                <div className="mt-2">
+                  <div className="font-bold text-red-400">Errores:</div>
+                  {Object.entries(methods.formState.errors).map(([key, error]) => (
+                    <div key={key} className="text-red-300">
+                      {key}: {error?.message as string}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>
