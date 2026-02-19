@@ -252,7 +252,7 @@ export default function ReportePage() {
               className="bg-accent-600 hover:bg-accent-700 px-12 shadow-xl shadow-accent-200"
               onClick={() => {
                 trackEvent({ event: EVENTS.WHATSAPP_CLICKED, userId: id as string });
-                window.open(`https://wa.me/51999999999?text=Hola, acabo de ver mi reporte de ValixAI para mi idea de ${test.profesion} y me gustaría asesoría personalizada.`, '_blank');
+                window.open(`https://wa.me/51961385515?text=Hola, acabo de ver mi reporte de ValixAI para mi idea de ${test.profesion} y me gustaría asesoría personalizada.`, '_blank');
               }}
             >
               <MessageCircle className="mr-2" />
