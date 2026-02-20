@@ -7,7 +7,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2">
           <Image 
-            src="/logo.svg" 
+            src="/logo.png" 
             alt="ValixAI Logo" 
             width={40} 
             height={40} 
